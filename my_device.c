@@ -8,26 +8,27 @@
 #include <linux/proc_fs.h>
 #include <asm/uaccess.h>
 
-#define MAJOR_NUMBER 61
+#define MAJOR_NUMBER 261
+#define DEVICE_NAME "amard"
 
 
 /* forward declaration */
 int onebyte_open(struct inode *inode, struct file *filep);
 int onebyte_release(struct inode *inode, struct file *filep);
 ssize_t onebyte_read(struct file *filep, char *buf, size_t count, loff_t *f_pos);
-ssize_t onebyte_write(struct file *filep, const char *buf,
-size_t count, loff_t *f_pos);
+ssize_t onebyte_write(struct file *filep, const char *buf, size_t count, loff_t *f_pos);
+
 static void onebyte_exit(void);
 
 /* definition of file_operation structure */
-struct file_operations onebyte_fops = {
-	read:	onebyte_read,
-	write:	onebyte_write,
-	open:	onebyte_open,
-	release:	onebyte_release
+static struct file_operations onebyte_fops = {
+	.read:	onebyte_read,
+	.write:	onebyte_write,
+	.open:	onebyte_open,
+	.release:	onebyte_release
 };
 
-char *onebyte_data = NULL;
+static char *onebyte_data = NULL;
 
 int onebyte_open(struct inode *inode, struct file *filep)
 {
@@ -40,13 +41,42 @@ int onebyte_release(struct inode *inode, struct file *filep)
 }
 
 
-ssize_t onebyte_read(struct file *filep, char *buf, size_t
-count, loff_t *f_pos)
+ssize_t onebyte_read(struct file *filep, char *buf, size_t count, loff_t *f_pos)
 {
-	/*please complete the function on your own*/
+
+	int bytes_read = 0;
+
+	/*
+	* If we're at the end of the message, return 0 signifying end of file.
+	*/
+	if (*msg_Ptr == 0)
+		return 0;
+
+  
+	//Actually put the data into the buffer
+   
+	while (count && *onebyte_data) {
+     	/*
+     	* The buffer is in the user data segment, not the kernel segment so "*"
+    	* assignment won't work. We have to use put_user which copies data from the
+     	* kernel data segment to the user data segment.
+     	*/
+
+	put_user(*(onebyte_data++), buf++);
+	count--;
+	bytes_read++;
+
+	return bytes_read;
+  }
+
+  /*
+   * Most read functions return the number of bytes put into the buffer
+   */
+return bytes_read;
 }
 ssize_t onebyte_write(struct file *filep, const char *buf, size_t count, loff_t *f_pos)
 {
+
 	/*please complete the function on your own*/
 }
 
@@ -54,8 +84,9 @@ static int onebyte_init(void)
 {
 	int result;
 	// register the device
-	result = register_chrdev(MAJOR_NUMBER, "onebyte", &onebyte_fops);
+	result = register_chrdev(MAJOR_NUMBER, DEVICE_NAME, &onebyte_fops);
 	if (result < 0) {
+		 printk(KERN_ALERT "Registering char device failed with %d\n", result);
 		return result;
 	}
 	// allocate one byte of memory for storage
@@ -86,7 +117,7 @@ static void onebyte_exit(void)
 		onebyte_data = NULL;
 	}
 	// unregister the device
-	unregister_chrdev(MAJOR_NUMBER, "onebyte");
+	unregister_chrdev(MAJOR_NUMBER, DEVICE_NAME );
 	printk(KERN_ALERT "Onebyte device module is unloaded\n");
 }
 
