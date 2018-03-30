@@ -22,10 +22,10 @@ static void onebyte_exit(void);
 
 /* definition of file_operation structure */
 static struct file_operations onebyte_fops = {
-	.read:	onebyte_read,
-	.write:	onebyte_write,
-	.open:	onebyte_open,
-	.release:	onebyte_release
+	.read =	onebyte_read,
+	.write = onebyte_write,
+	.open = onebyte_open,
+	.release = onebyte_release
 };
 
 static char *onebyte_data = NULL;
@@ -49,7 +49,7 @@ ssize_t onebyte_read(struct file *filep, char *buf, size_t count, loff_t *f_pos)
 	/*
 	* If we're at the end of the message, return 0 signifying end of file.
 	*/
-	if (*msg_Ptr == 0)
+	if (*onebyte_data == 0)
 		return 0;
 
   
@@ -65,6 +65,7 @@ ssize_t onebyte_read(struct file *filep, char *buf, size_t count, loff_t *f_pos)
 	put_user(*(onebyte_data++), buf++);
 	count--;
 	bytes_read++;
+	printk(KERN_INFO "%s \n", onebyte_data );
 
 	return bytes_read;
   }
@@ -76,8 +77,14 @@ return bytes_read;
 }
 ssize_t onebyte_write(struct file *filep, const char *buf, size_t count, loff_t *f_pos)
 {
-
-	/*please complete the function on your own*/
+	int size_of_msg;
+	sprintf(onebyte_data, "%s(%zu letters)", buf, count);
+	size_of_msg = strlen(onebyte_data); 
+	if(size_of_msg > 1) {
+		printk( " No space left on the device \n" );
+	}
+	
+	return size_of_msg;
 }
 
 static int onebyte_init(void)
