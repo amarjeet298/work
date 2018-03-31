@@ -33,7 +33,7 @@ struct file_operations onebyte_fops = {
 };
 
 static char *onebyte_data = NULL;
-static int is_byte_read = 0;
+static int BUFFER_SIZE = 0;
 
 int onebyte_open(struct inode *inode, struct file *filep)
 {
@@ -47,12 +47,15 @@ int onebyte_release(struct inode *inode, struct file *filep)
 
 ssize_t onebyte_read(struct file *filep, char *buff, size_t length, loff_t *f_pos)
 {
+	
 	char c;
-
 	int bytes_read = 0;
+	printk(KERN_INFO "Driver: read () %i \n", BUFFER_SIZE);
+
 	if(f_pos == NULL ) return -EINVAL;
 	
-	if( is_byte_read ==1 ) {
+	if( BUFFER_SIZE ==1 ) {
+		BUFFER_SIZE = 0;
 		return 0;	
 	}
   
@@ -65,7 +68,7 @@ ssize_t onebyte_read(struct file *filep, char *buff, size_t length, loff_t *f_po
 	while((bytes_read < length)){
 		bytes_read++;
 	} 
-	is_byte_read = 1;
+	BUFFER_SIZE = 1;
 	printk(KERN_ALERT "byte read is %d\n", bytes_read);
 
   
@@ -73,24 +76,44 @@ ssize_t onebyte_read(struct file *filep, char *buff, size_t length, loff_t *f_po
 	
 }
 
-ssize_t onebyte_write(struct file *filep, const char *buff, size_t length, loff_t *f_pos)
+ssize_t onebyte_write(struct file *filep, const char *buff, size_t len, loff_t *off)
 {
-	printk(KERN_ALERT "inside write length is : %ld \n", length);	
 	
-	onebyte_data = kmalloc(sizeof(char), GFP_KERNEL);
-	if (!onebyte_data) {
-		onebyte_exit();
-		// cannot allocate memory
-		// return no memory error, negative signify a failure
-		return -ENOMEM;
-	}
-	copy_from_user(onebyte_data, buff, 1);
-	
-	if(length > 1) {
+	int i;
+	//char byte;
+	printk(KERN_INFO "Driver: write() %i \n", BUFFER_SIZE );
+	printk(KERN_INFO "1. The value of *off is:%lli\n",*off);
+	if (*off >= (BUFFER_SIZE - 1 || BUFFER_SIZE == 1)){
+		BUFFER_SIZE = 0;
+        	return 0;
+    	}
+
+	printk(KERN_INFO "2. The value of *off is:%lli\n",*off);
+
+    	if ((*off + len) >  1 ){
 		printk( "bash : printf : Write Error: No space left on device \n" );
-	}
-	
-	return 0;
+		return 0;
+        	len = 0;
+		*off = 0;
+		return len;
+    	}
+
+	printk(KERN_INFO "3. The value of *off is:%lli\n",*off);
+	 if (copy_from_user(onebyte_data, buff , 1)){
+                return -EFAULT;
+        }
+	//onebyte_data = &byte;
+
+	for (i = 0; i < len; i++){
+	      i++ ;
+    	}
+	//BUFFER_SIZE = 1;
+	printk(KERN_INFO "4. The value of *off is:%lli\n",*off);
+	//*off += len;
+	//printk(KERN_INFO "5. The value of *off is:%lli\n",*off);
+
+    return i;
+
 }
 
 
@@ -119,7 +142,7 @@ static int onebyte_init(void)
 	// initialize the value to be X
 
 	*onebyte_data = 'X';
-	is_byte_read = 0 ;
+	BUFFER_SIZE = 0 ;
 	printk(KERN_ALERT "This is a onebyte device module\n");
 	return 0;
 }
