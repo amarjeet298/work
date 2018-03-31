@@ -33,6 +33,7 @@ struct file_operations onebyte_fops = {
 };
 
 static char *onebyte_data = NULL;
+static int is_byte_read = 0;
 
 int onebyte_open(struct inode *inode, struct file *filep)
 {
@@ -48,41 +49,48 @@ ssize_t onebyte_read(struct file *filep, char *buff, size_t length, loff_t *f_po
 {
 	char c;
 
-	/*
-	* If we're at the end of the message, return 0 signifying end of file.
-	*/
-	if (*onebyte_data == 0)
-		return 0;
-
+	int bytes_read = 0;
+	if(f_pos == NULL ) return -EINVAL;
+	
+	if( is_byte_read ==1 ) {
+		return 0;	
+	}
   
 	//Actually put the data into the buffer
 	c = onebyte_data[0];
-	put_user(c, buff++);
-	onebyte_data = "";
-	printk(KERN_ALERT "inside read length is : %ld \n", length);
-	//copy_to_user( buff, onebyte_data , 1);	
+	put_user(c, buff);
+	bytes_read++;
+	//set the read data length to 0 to force the function to return.
 	
+	while((bytes_read < length)){
+		bytes_read++;
+	} 
+	is_byte_read = 1;
+	printk(KERN_ALERT "byte read is %d\n", bytes_read);
 
-	return 1;
-
-
+  
+	return bytes_read;
+	
 }
 
-ssize_t onebyte_write(struct file *filep, const char *buf, size_t count, loff_t *f_pos)
+ssize_t onebyte_write(struct file *filep, const char *buff, size_t length, loff_t *f_pos)
 {
+	printk(KERN_ALERT "inside write length is : %ld \n", length);	
 	
-	//char *toRead ;
-	//char c ;
+	onebyte_data = kmalloc(sizeof(char), GFP_KERNEL);
+	if (!onebyte_data) {
+		onebyte_exit();
+		// cannot allocate memory
+		// return no memory error, negative signify a failure
+		return -ENOMEM;
+	}
+	copy_from_user(onebyte_data, buff, 1);
 	
-	//toRead = buf;
-	//c = *buf;	
-	*onebyte_data = buf[0];
-
-	if(count > 1) {
-		//put_user( "bash : printf : Write Error: No space left on device \n" , buf);
+	if(length > 1) {
+		printk( "bash : printf : Write Error: No space left on device \n" );
 	}
 	
-	return 1;
+	return 0;
 }
 
 
@@ -111,6 +119,7 @@ static int onebyte_init(void)
 	// initialize the value to be X
 
 	*onebyte_data = 'X';
+	is_byte_read = 0 ;
 	printk(KERN_ALERT "This is a onebyte device module\n");
 	return 0;
 }
