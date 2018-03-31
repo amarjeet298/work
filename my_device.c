@@ -6,7 +6,11 @@
 #include <linux/types.h>
 #include <linux/fs.h>
 #include <linux/proc_fs.h>
-#include <asm/uaccess.h>
+#include <linux/sched.h>
+#include <linux/fs_struct.h>
+#include <linux/uaccess.h>
+
+
 
 #define MAJOR_NUMBER 261
 #define DEVICE_NAME "amard"
@@ -40,10 +44,8 @@ int onebyte_release(struct inode *inode, struct file *filep)
 	return 0; // always successful
 }
 
-ssize_t onebyte_read(struct file *filep, char *buf, size_t count, loff_t *f_pos)
+ssize_t onebyte_read(struct file *filep, char *buff, size_t length, loff_t *f_pos)
 {
-
-	char *toRead;
 	char c;
 
 	/*
@@ -54,27 +56,30 @@ ssize_t onebyte_read(struct file *filep, char *buf, size_t count, loff_t *f_pos)
 
   
 	//Actually put the data into the buffer
-	toRead = onebyte_data;
-	c = *toRead;
-	put_user(*onebyte_data, buf);	
+	c = onebyte_data[0];
+	put_user(c, buff++);
+	onebyte_data = "";
+	printk(KERN_ALERT "inside read length is : %ld \n", length);
+	//copy_to_user( buff, onebyte_data , 1);	
 	
 
-
 	return 1;
+
+
 }
 
 ssize_t onebyte_write(struct file *filep, const char *buf, size_t count, loff_t *f_pos)
 {
 	
 	//char *toRead ;
-	char c ;
+	//char c ;
 	
 	//toRead = buf;
-	c = *buf;	
-	*onebyte_data = c;
+	//c = *buf;	
+	*onebyte_data = buf[0];
 
 	if(count > 1) {
-		// put_user( "Write Error: No space left on the device \n" , buf);
+		//put_user( "bash : printf : Write Error: No space left on device \n" , buf);
 	}
 	
 	return 1;
