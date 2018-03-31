@@ -80,37 +80,27 @@ ssize_t onebyte_write(struct file *filep, const char *buff, size_t len, loff_t *
 {
 	
 	int i;
-	//char byte;
 	printk(KERN_INFO "Driver: write() %i \n", BUFFER_SIZE );
-	printk(KERN_INFO "1. The value of *off is:%lli\n",*off);
+
 	if (*off >= (BUFFER_SIZE - 1 || BUFFER_SIZE == 1)){
 		BUFFER_SIZE = 0;
         	return 0;
     	}
 
-	printk(KERN_INFO "2. The value of *off is:%lli\n",*off);
-
-    	if ((*off + len) >  1 ){
-		printk( "bash : printf : Write Error: No space left on device \n" );
-		return 0;
-        	len = 0;
-		*off = 0;
-		return len;
-    	}
-
-	printk(KERN_INFO "3. The value of *off is:%lli\n",*off);
+	//read exactly one byte
 	 if (copy_from_user(onebyte_data, buff , 1)){
                 return -EFAULT;
         }
-	//onebyte_data = &byte;
 
+    	if ((*off + len) >  1 ){
+		return -ENOSPC;
+    	}
+	
+	
+	//reset the total length t give impression that entire buffer has been read
 	for (i = 0; i < len; i++){
 	      i++ ;
     	}
-	//BUFFER_SIZE = 1;
-	printk(KERN_INFO "4. The value of *off is:%lli\n",*off);
-	//*off += len;
-	//printk(KERN_INFO "5. The value of *off is:%lli\n",*off);
 
     return i;
 
