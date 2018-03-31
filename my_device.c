@@ -21,7 +21,7 @@ ssize_t onebyte_write(struct file *filep, const char *buf, size_t count, loff_t 
 static void onebyte_exit(void);
 
 /* definition of file_operation structure */
-static struct file_operations onebyte_fops = {
+struct file_operations onebyte_fops = {
 	.read =	onebyte_read,
 	.write = onebyte_write,
 	.open = onebyte_open,
@@ -40,11 +40,11 @@ int onebyte_release(struct inode *inode, struct file *filep)
 	return 0; // always successful
 }
 
-
 ssize_t onebyte_read(struct file *filep, char *buf, size_t count, loff_t *f_pos)
 {
 
-	int bytes_read = 0;
+	char *toRead;
+	char c;
 
 	/*
 	* If we're at the end of the message, return 0 signifying end of file.
@@ -54,38 +54,33 @@ ssize_t onebyte_read(struct file *filep, char *buf, size_t count, loff_t *f_pos)
 
   
 	//Actually put the data into the buffer
-   
-	while (count && *onebyte_data) {
-     	/*
-     	* The buffer is in the user data segment, not the kernel segment so "*"
-    	* assignment won't work. We have to use put_user which copies data from the
-     	* kernel data segment to the user data segment.
-     	*/
+	toRead = onebyte_data;
+	c = *toRead;
+	put_user(*onebyte_data, buf);	
+	
 
-	put_user(*(onebyte_data++), buf++);
-	count--;
-	bytes_read++;
-	printk(KERN_INFO "%s \n", onebyte_data );
 
-	return bytes_read;
-  }
-
-  /*
-   * Most read functions return the number of bytes put into the buffer
-   */
-return bytes_read;
+	return 1;
 }
+
 ssize_t onebyte_write(struct file *filep, const char *buf, size_t count, loff_t *f_pos)
 {
-	int size_of_msg;
-	sprintf(onebyte_data, "%s(%zu letters)", buf, count);
-	size_of_msg = strlen(onebyte_data); 
-	if(size_of_msg > 1) {
-		printk( " No space left on the device \n" );
+	
+	//char *toRead ;
+	char c ;
+	
+	//toRead = buf;
+	c = *buf;	
+	*onebyte_data = c;
+
+	if(count > 1) {
+		// put_user( "Write Error: No space left on the device \n" , buf);
 	}
 	
-	return size_of_msg;
+	return 1;
 }
+
+
 
 static int onebyte_init(void)
 {
